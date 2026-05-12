@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
   ChevronDownIcon,
   DownloadIcon,
@@ -29,29 +30,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-
-const STORAGE_KEY = "mailr.projects";
-
-type Project = {
-  id: string;
-  name: string;
-  createdAt: number;
-  html: string;
-};
-
-function loadProjects(): Project[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Project[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistProjects(projects: Project[]) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-}
+import {
+  loadProjects,
+  persistProjects,
+  type MailrProject,
+} from "@/lib/projects-storage";
 
 function timeAgo(ts: number) {
   const diff = Date.now() - ts;
@@ -79,7 +62,7 @@ function safeFilename(name: string) {
 }
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<MailrProject[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
@@ -87,12 +70,14 @@ export default function ProjectsPage() {
   const [renameOpen, setRenameOpen] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
-  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MailrProject | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect -- localStorage after mount */
     setProjects(loadProjects());
     setHydrated(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   const filtered = useMemo(() => {
@@ -104,7 +89,7 @@ export default function ProjectsPage() {
   function createProject() {
     const trimmed = name.trim();
     if (!trimmed) return;
-    const project: Project = {
+    const project: MailrProject = {
       id: crypto.randomUUID(),
       name: trimmed,
       createdAt: Date.now(),
@@ -172,7 +157,7 @@ export default function ProjectsPage() {
   async function handleImportFile(file: File) {
     try {
       const text = await file.text();
-      const data = JSON.parse(text) as Partial<Project>;
+      const data = JSON.parse(text) as Partial<MailrProject>;
       if (
         !data ||
         typeof data !== "object" ||
@@ -184,7 +169,7 @@ export default function ProjectsPage() {
         });
         return;
       }
-      const project: Project = {
+      const project: MailrProject = {
         id: crypto.randomUUID(),
         name: data.name,
         createdAt:
@@ -261,9 +246,14 @@ export default function ProjectsPage() {
                 {filtered.map((p) => (
                   <div
                     key={p.id}
-                    className="group bg-card text-card-foreground hover:bg-muted/30 rounded-lg border p-4 transition-colors"
+                    className="group bg-card text-card-foreground hover:bg-muted/30 relative rounded-lg border p-4 transition-colors"
                   >
-                    <div className="flex items-start justify-between gap-2">
+                    <Link
+                      href={`/editor/${p.id}`}
+                      className="ring-ring/50 absolute inset-0 z-0 rounded-lg outline-none focus-visible:ring-2"
+                      aria-label={`Open ${p.name}`}
+                    />
+                    <div className="relative z-10 flex items-start justify-between gap-2 pointer-events-none">
                       <div className="min-w-0 flex-1">
                         <h3 className="truncate text-sm font-medium leading-tight">
                           {p.name}
@@ -277,7 +267,7 @@ export default function ProjectsPage() {
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            className="-mt-1 -mr-1 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100"
+                            className="-mt-1 -mr-1 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100 pointer-events-auto"
                             aria-label="Project actions"
                           >
                             <MoreVerticalIcon />
