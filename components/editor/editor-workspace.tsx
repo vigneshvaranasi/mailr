@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { getProjectById } from "@/lib/projects-storage";
 
 import { AppSidebar } from "./appsidebar";
+import { SendMailDialog } from "./send-mail-dialog";
 
 type EditorWorkspaceProps = {
   projectId: string;
@@ -20,6 +20,7 @@ export function EditorWorkspace({ projectId, children }: EditorWorkspaceProps) {
   const pathname = usePathname();
   const [phase, setPhase] = useState<"pending" | "ok" | "missing">("pending");
   const [projectName, setProjectName] = useState("");
+  const [sendOpen, setSendOpen] = useState(false);
 
   const base = `/editor/${projectId}`;
   const isMainEditor = pathname === base || pathname === `${base}/`;
@@ -29,7 +30,7 @@ export function EditorWorkspace({ projectId, children }: EditorWorkspaceProps) {
     : "min-h-0 flex-1 overflow-auto p-4 md:p-6";
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- localStorage after mount */
+    /* eslint-disable react-hooks/set-state-in-effect */
     const p = getProjectById(projectId);
     if (!p) {
       setPhase("missing");
@@ -79,15 +80,17 @@ export function EditorWorkspace({ projectId, children }: EditorWorkspaceProps) {
             type="button"
             variant="secondary"
             size="sm"
-            onClick={() =>
-              toast.message("Send mail", {
-                description: "SMTP test send is not connected yet.",
-              })
-            }
+            onClick={() => setSendOpen(true)}
           >
             Send mail
           </Button>
         </header>
+        <SendMailDialog
+          projectId={projectId}
+          projectName={projectName}
+          open={sendOpen}
+          onOpenChange={setSendOpen}
+        />
         <div className={contentClass}>
           {children}
         </div>

@@ -31,7 +31,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import {
+  createDefaultEnvelope,
+  createDefaultSmtpConfig,
   loadProjects,
+  parseEnvelopeConfig,
+  parseSmtpConfig,
   persistProjects,
   type MailrProject,
 } from "@/lib/projects-storage";
@@ -94,6 +98,8 @@ export default function ProjectsPage() {
       name: trimmed,
       createdAt: Date.now(),
       html: "",
+      smtp: createDefaultSmtpConfig(),
+      envelope: createDefaultEnvelope(),
     };
     const next = [project, ...projects];
     setProjects(next);
@@ -175,6 +181,14 @@ export default function ProjectsPage() {
         createdAt:
           typeof data.createdAt === "number" ? data.createdAt : Date.now(),
         html: data.html,
+        smtp: parseSmtpConfig(
+          "smtp" in data ? (data as { smtp?: unknown }).smtp : undefined,
+        ),
+        envelope: parseEnvelopeConfig(
+          "envelope" in data
+            ? (data as { envelope?: unknown }).envelope
+            : undefined,
+        ),
       };
       const next = [project, ...projects];
       setProjects(next);

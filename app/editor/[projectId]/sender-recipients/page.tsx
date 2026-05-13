@@ -1,9 +1,10 @@
-import { EditorSectionSkeleton } from "@/components/editor/section-skeleton";
+import { ProjectSenderRecipients } from "@/components/editor/project-sender-recipients";
 
-export default function EditorSenderRecipientsPage() {
-  return (
-    <EditorSectionSkeleton
-      title="Sender & recipients"
-    />
-  );
+export default async function EditorSenderRecipientsPage({
+  params,
+}: Readonly<{
+  params: Promise<{ projectId: string }>;
+}>) {
+  const { projectId } = await params;
+  return <ProjectSenderRecipients projectId={projectId} />;
 }
