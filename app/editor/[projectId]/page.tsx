@@ -1,9 +1,10 @@
-import { EditorSectionSkeleton } from "@/components/editor/section-skeleton";
+import { ProjectHtmlEditor } from "@/components/editor/html-editor";
 
-export default function EditorProjectPage() {
-  return (
-    <EditorSectionSkeleton
-      title="Editor"
-    />
-  );
+export default async function EditorProjectPage({
+  params,
+}: Readonly<{
+  params: Promise<{ projectId: string }>;
+}>) {
+  const { projectId } = await params;
+  return <ProjectHtmlEditor projectId={projectId} />;
 }

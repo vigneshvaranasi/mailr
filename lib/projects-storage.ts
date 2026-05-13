@@ -28,3 +28,12 @@ export function persistProjects(projects: MailrProject[]) {
 export function getProjectById(id: string): MailrProject | undefined {
   return loadProjects().find((p) => p.id === id);
 }
+
+export function updateProjectHtml(id: string, html: string) {
+  const projects = loadProjects();
+  const idx = projects.findIndex((p) => p.id === id);
+  if (idx === -1) return;
+  const next = [...projects];
+  next[idx] = { ...next[idx], html };
+  persistProjects(next);
+}

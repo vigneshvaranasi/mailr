@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -16,8 +17,16 @@ type EditorWorkspaceProps = {
 };
 
 export function EditorWorkspace({ projectId, children }: EditorWorkspaceProps) {
+  const pathname = usePathname();
   const [phase, setPhase] = useState<"pending" | "ok" | "missing">("pending");
   const [projectName, setProjectName] = useState("");
+
+  const base = `/editor/${projectId}`;
+  const isMainEditor = pathname === base || pathname === `${base}/`;
+
+  const contentClass = isMainEditor
+    ? "flex min-h-0 flex-1 flex-col overflow-hidden p-0"
+    : "min-h-0 flex-1 overflow-auto p-4 md:p-6";
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- localStorage after mount */
@@ -79,7 +88,7 @@ export function EditorWorkspace({ projectId, children }: EditorWorkspaceProps) {
             Send mail
           </Button>
         </header>
-        <div className="min-h-0 flex-1 overflow-auto p-4 md:p-6">
+        <div className={contentClass}>
           {children}
         </div>
       </SidebarInset>
