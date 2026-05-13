@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ChevronDownIcon,
+  CopyIcon,
   DownloadIcon,
   MoreVerticalIcon,
   PencilIcon,
@@ -30,13 +31,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { downloadProjectJson } from "@/lib/project-export";
 import {
+  addProject,
   createDefaultEnvelope,
   createDefaultSmtpConfig,
+  deleteProject,
+  duplicateMailrProject,
   loadProjects,
   parseEnvelopeConfig,
   parseSmtpConfig,
   persistProjects,
+  updateProjectName,
   type MailrProject,
 } from "@/lib/projects-storage";
 
@@ -57,14 +63,6 @@ function timeAgo(ts: number) {
   });
 }
 
-function safeFilename(name: string) {
-  const slug = name
-    .replace(/[^a-z0-9-_]+/gi, "-")
-    .replace(/^-+|-+$/g, "")
-    .toLowerCase();
-  return `${slug || "project"}.mailr.json`;
-}
-
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<MailrProject[]>([]);
   const [hydrated, setHydrated] = useState(false);
@@ -78,7 +76,7 @@ export default function ProjectsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- localStorage after mount */
+    /* eslint-disable react-hooks/set-state-in-effect */
     setProjects(loadProjects());
     setHydrated(true);
     /* eslint-enable react-hooks/set-state-in-effect */
@@ -121,11 +119,8 @@ export default function ProjectsPage() {
     if (!renamingId) return;
     const trimmed = renameValue.trim();
     if (!trimmed) return;
-    const next = projects.map((p) =>
-      p.id === renamingId ? { ...p, name: trimmed } : p,
-    );
-    setProjects(next);
-    persistProjects(next);
+    updateProjectName(renamingId, trimmed);
+    setProjects(loadProjects());
     setRenameOpen(false);
     setRenamingId(null);
     toast.success(`Renamed to "${trimmed}"`);
@@ -133,27 +128,25 @@ export default function ProjectsPage() {
 
   function confirmDelete() {
     if (!deleteTarget) return;
-    const next = projects.filter((p) => p.id !== deleteTarget.id);
-    setProjects(next);
-    persistProjects(next);
+    deleteProject(deleteTarget.id);
+    setProjects(loadProjects());
     toast.success(`Deleted "${deleteTarget.name}"`);
     setDeleteTarget(null);
+  }
+
+  function duplicateFromCard(id: string) {
+    const p = projects.find((x) => x.id === id);
+    if (!p) return;
+    const copy = duplicateMailrProject(p);
+    addProject(copy);
+    setProjects(loadProjects());
+    toast.success(`Duplicated as "${copy.name}"`);
   }
 
   function exportProject(id: string) {
     const project = projects.find((p) => p.id === id);
     if (!project) return;
-    const blob = new Blob([JSON.stringify(project, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = safeFilename(project.name);
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadProjectJson(project);
   }
 
   function openImportPicker() {
@@ -287,12 +280,18 @@ export default function ProjectsPage() {
                             <MoreVerticalIcon />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuContent align="end" className="w-44">
                           <DropdownMenuItem
                             onSelect={() => startRename(p.id)}
                           >
                             <PencilIcon />
                             Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => duplicateFromCard(p.id)}
+                          >
+                            <CopyIcon />
+                            Duplicate
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => exportProject(p.id)}

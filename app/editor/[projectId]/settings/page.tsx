@@ -1,7 +1,10 @@
-import { EditorSectionSkeleton } from "@/components/editor/section-skeleton";
+import { ProjectSettings } from "@/components/editor/project-settings";
 
-export default function EditorSettingsPage() {
-  return (
-    <EditorSectionSkeleton title="Project settings" />
-  );
+export default async function EditorSettingsPage({
+  params,
+}: Readonly<{
+  params: Promise<{ projectId: string }>;
+}>) {
+  const { projectId } = await params;
+  return <ProjectSettings projectId={projectId} />;
 }

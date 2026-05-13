@@ -41,6 +41,18 @@ export function EditorWorkspace({ projectId, children }: EditorWorkspaceProps) {
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [projectId]);
 
+  useEffect(() => {
+    function syncHeaderTitle() {
+      const p = getProjectById(projectId);
+      if (p) {
+        setProjectName(p.name);
+      }
+    }
+    window.addEventListener("mailr-projects-updated", syncHeaderTitle);
+    return () =>
+      window.removeEventListener("mailr-projects-updated", syncHeaderTitle);
+  }, [projectId]);
+
   if (phase === "pending") {
     return (
       <div className="bg-background text-muted-foreground flex min-h-dvh items-center justify-center text-sm">

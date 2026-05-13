@@ -30,7 +30,7 @@ type AppSidebarProps = {
 
 export function AppSidebar({ projectId }: AppSidebarProps) {
   const pathname = usePathname();
-  const { toggleSidebar, state } = useSidebar();
+  const { toggleSidebar } = useSidebar();
 
   const base = `/editor/${projectId}`;
 
@@ -67,9 +67,9 @@ export function AppSidebar({ projectId }: AppSidebarProps) {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-sidebar-border border-b">
+      <SidebarHeader className="border-sidebar-border flex h-14 justify-center border-b p-2">
         <SidebarMenu className="flex w-full min-w-0 flex-row items-center gap-1">
-          <SidebarMenuItem className="min-w-0 flex-1">
+          <SidebarMenuItem className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
             <SidebarMenuButton asChild tooltip="Back to projects">
               <Link href="/projects">
                 <ChevronLeft className="size-4 shrink-0" />
@@ -80,9 +80,7 @@ export function AppSidebar({ projectId }: AppSidebarProps) {
           <SidebarMenuItem className="shrink-0">
             <SidebarMenuButton
               onClick={toggleSidebar}
-              tooltip={
-                state === "expanded" ? "Collapse sidebar" : "Expand sidebar"
-              }
+              tooltip="Toggle sidebar"
             >
               <PanelLeft className="size-4" />
               <span className="sr-only">Toggle sidebar</span>

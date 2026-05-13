@@ -115,6 +115,47 @@ export function getProjectById(id: string): MailrProject | undefined {
   return p;
 }
 
+function notifyProjectsUpdated() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("mailr-projects-updated"));
+}
+
+export function updateProjectName(id: string, name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  const projects = loadProjects();
+  const idx = projects.findIndex((p) => p.id === id);
+  if (idx === -1) return;
+  const next = [...projects];
+  next[idx] = { ...next[idx], name: trimmed };
+  persistProjects(next);
+  notifyProjectsUpdated();
+}
+
+export function deleteProject(id: string) {
+  const next = loadProjects().filter((p) => p.id !== id);
+  persistProjects(next);
+  notifyProjectsUpdated();
+}
+
+export function addProject(project: MailrProject) {
+  const next = [project, ...loadProjects()];
+  persistProjects(next);
+  notifyProjectsUpdated();
+}
+
+/** Deep copy with new id, name suffix, fresh createdAt. */
+export function duplicateMailrProject(source: MailrProject): MailrProject {
+  return {
+    id: crypto.randomUUID(),
+    name: `${source.name} (copy)`,
+    createdAt: Date.now(),
+    html: source.html,
+    smtp: { ...source.smtp },
+    envelope: { ...source.envelope },
+  };
+}
+
 export function updateProjectHtml(id: string, html: string) {
   const projects = loadProjects();
   const idx = projects.findIndex((p) => p.id === id);
