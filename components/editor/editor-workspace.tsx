@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { getProjectById } from "@/lib/projects-storage";
+import { getProjectById, touchProjectOpened } from "@/lib/projects-storage";
 
 import { AppSidebar } from "./appsidebar";
 import { SendMailDialog } from "./send-mail-dialog";
@@ -40,6 +40,11 @@ export function EditorWorkspace({ projectId, children }: EditorWorkspaceProps) {
     setPhase("ok");
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [projectId]);
+
+  useEffect(() => {
+    if (phase !== "ok") return;
+    touchProjectOpened(projectId);
+  }, [phase, projectId]);
 
   useEffect(() => {
     function syncHeaderTitle() {

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  BookmarkXIcon,
   ChevronDownIcon,
   CopyIcon,
   DownloadIcon,
@@ -28,12 +29,15 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { downloadProjectJson } from "@/lib/project-export";
+import { cardThumbnailSrcDoc } from "@/lib/card-thumbnail-srcdoc";
 import {
   addProject,
+  clearProjectRecent,
   createDefaultEnvelope,
   createDefaultSmtpConfig,
   deleteProject,
@@ -63,6 +67,152 @@ function timeAgo(ts: number) {
   });
 }
 
+function compareProjectsByLastOpened(a: MailrProject, b: MailrProject) {
+  const ao = a.lastOpenedAt ?? 0;
+  const bo = b.lastOpenedAt ?? 0;
+  if (bo !== ao) return bo - ao;
+  return b.createdAt - a.createdAt;
+}
+
+const PREVIEW_BASE_W = 560;
+const PREVIEW_BASE_H = 720;
+
+function ProjectCardThumbnail({ html }: { html: string }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.35);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = el.clientWidth;
+      if (w > 0) setScale(w / PREVIEW_BASE_W);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const empty = html.trim().length === 0;
+
+  return (
+    <div
+      ref={wrapRef}
+      className="relative aspect-[8/5] w-full min-h-[8rem] overflow-hidden bg-muted/50 dark:bg-muted/25"
+    >
+      {empty ? (
+        <div className="text-muted-foreground absolute inset-0 flex items-center justify-center px-6 text-center text-sm leading-snug">
+          No preview yet
+        </div>
+      ) : (
+        <iframe
+          title="Email preview thumbnail"
+          srcDoc={cardThumbnailSrcDoc(html)}
+          sandbox=""
+          className="pointer-events-none absolute top-0 left-0 overflow-hidden border-0 bg-white"
+          style={{
+            width: PREVIEW_BASE_W,
+            height: PREVIEW_BASE_H,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ProjectCard({
+  project: p,
+  recentStrip,
+  onRename,
+  onDuplicate,
+  onExport,
+  onDeleteRequest,
+  onRemoveFromRecent,
+}: {
+  project: MailrProject;
+  recentStrip?: boolean;
+  onRename: (id: string) => void;
+  onDuplicate: (id: string) => void;
+  onExport: (id: string) => void;
+  onDeleteRequest: (project: MailrProject) => void;
+  onRemoveFromRecent?: (id: string) => void;
+}) {
+  const opened =
+    p.lastOpenedAt != null &&
+    Number.isFinite(p.lastOpenedAt) &&
+    p.lastOpenedAt > 0;
+
+  return (
+    <div className="group/card bg-card text-card-foreground border-border relative overflow-hidden rounded-xl border shadow-sm transition-[box-shadow,border-color] duration-200 hover:border-foreground/15 hover:shadow-md dark:hover:border-white/12">
+      <Link
+        href={`/editor/${p.id}`}
+        className="ring-ring/60 absolute inset-0 z-0 rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        aria-label={`Open ${p.name}`}
+      />
+      <div className="relative z-10 shrink-0 pointer-events-none">
+        <ProjectCardThumbnail html={p.html} />
+      </div>
+      <div className="relative z-10 flex items-start justify-between gap-3 border-border/70 border-t px-4 py-3 pointer-events-none">
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <h3 className="text-foreground truncate text-sm leading-snug font-semibold tracking-tight">
+            {p.name}
+          </h3>
+          <p className="text-muted-foreground text-xs tabular-nums leading-relaxed">
+            {opened
+              ? `Opened ${timeAgo(p.lastOpenedAt!)}`
+              : `Created ${timeAgo(p.createdAt)}`}
+          </p>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground hover:bg-muted hover:text-foreground -mr-1 shrink-0 rounded-md opacity-60 transition-[opacity,colors] group-hover/card:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 pointer-events-auto active:scale-[0.96]"
+              aria-label="Project actions"
+            >
+              <MoreVerticalIcon className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {recentStrip && onRemoveFromRecent ? (
+              <>
+                <DropdownMenuItem onSelect={() => onRemoveFromRecent(p.id)}>
+                  <BookmarkXIcon />
+                  Remove from recent
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
+            <DropdownMenuItem onSelect={() => onRename(p.id)}>
+              <PencilIcon />
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onDuplicate(p.id)}>
+              <CopyIcon />
+              Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onExport(p.id)}>
+              <DownloadIcon />
+              Export as JSON
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              variant="destructive"
+              onSelect={() => onDeleteRequest(p)}
+            >
+              <Trash2Icon />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<MailrProject[]>([]);
   const [hydrated, setHydrated] = useState(false);
@@ -82,11 +232,37 @@ export default function ProjectsPage() {
     /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
+  useEffect(() => {
+    function syncFromStorage() {
+      setProjects(loadProjects());
+    }
+    window.addEventListener("mailr-projects-updated", syncFromStorage);
+    return () =>
+      window.removeEventListener("mailr-projects-updated", syncFromStorage);
+  }, []);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return projects;
     return projects.filter((p) => p.name.toLowerCase().includes(q));
   }, [projects, query]);
+
+  const sortedFiltered = useMemo(
+    () => [...filtered].sort(compareProjectsByLastOpened),
+    [filtered],
+  );
+
+  const recentProjects = useMemo(() => {
+    return [...projects]
+      .filter(
+        (p) => typeof p.lastOpenedAt === "number" && p.lastOpenedAt > 0,
+      )
+      .sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0))
+      .slice(0, 8);
+  }, [projects]);
+
+  const searching = query.trim().length > 0;
+  const showRecentStrip = !searching && recentProjects.length > 0;
 
   function createProject() {
     const trimmed = name.trim();
@@ -149,6 +325,12 @@ export default function ProjectsPage() {
     downloadProjectJson(project);
   }
 
+  function removeFromRecent(id: string) {
+    clearProjectRecent(id);
+    setProjects(loadProjects());
+    toast.success("Removed from recently opened");
+  }
+
   function openImportPicker() {
     fileInputRef.current?.click();
   }
@@ -173,6 +355,11 @@ export default function ProjectsPage() {
         name: data.name,
         createdAt:
           typeof data.createdAt === "number" ? data.createdAt : Date.now(),
+        lastOpenedAt:
+          typeof data.lastOpenedAt === "number" &&
+          Number.isFinite(data.lastOpenedAt)
+            ? data.lastOpenedAt
+            : undefined,
         html: data.html,
         smtp: parseSmtpConfig(
           "smtp" in data ? (data as { smtp?: unknown }).smtp : undefined,
@@ -260,64 +447,50 @@ export default function ProjectsPage() {
               No projects match &ldquo;{query}&rdquo;.
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filtered.map((p) => (
-                <div
-                  key={p.id}
-                  className="group bg-card text-card-foreground hover:bg-muted/30 relative rounded-lg border p-4 transition-colors"
-                >
-                  <Link
-                    href={`/editor/${p.id}`}
-                    className="ring-ring/50 absolute inset-0 z-0 rounded-lg outline-none focus-visible:ring-2"
-                    aria-label={`Open ${p.name}`}
-                  />
-                  <div className="relative z-10 flex items-start justify-between gap-2 pointer-events-none">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-sm font-medium leading-tight">
-                        {p.name}
-                      </h3>
-                      <p className="text-muted-foreground mt-1 text-xs">
-                        Created {timeAgo(p.createdAt)}
-                      </p>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          className="-mt-1 -mr-1 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100 pointer-events-auto"
-                          aria-label="Project actions"
-                        >
-                          <MoreVerticalIcon />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44">
-                        <DropdownMenuItem onSelect={() => startRename(p.id)}>
-                          <PencilIcon />
-                          Rename
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onSelect={() => duplicateFromCard(p.id)}
-                        >
-                          <CopyIcon />
-                          Duplicate
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => exportProject(p.id)}>
-                          <DownloadIcon />
-                          Export as JSON
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          variant="destructive"
-                          onSelect={() => setDeleteTarget(p)}
-                        >
-                          <Trash2Icon />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+            <div className="space-y-8">
+              {showRecentStrip ? (
+                <section className="space-y-3">
+                  <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                    Recently opened
+                  </h2>
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {recentProjects.map((p) => (
+                      <ProjectCard
+                        key={`recent-${p.id}`}
+                        recentStrip
+                        project={p}
+                        onRename={startRename}
+                        onDuplicate={duplicateFromCard}
+                        onExport={exportProject}
+                        onDeleteRequest={setDeleteTarget}
+                        onRemoveFromRecent={removeFromRecent}
+                      />
+                    ))}
                   </div>
-                </div>
-              ))}
+                </section>
+              ) : null}
+
+              {sortedFiltered.length > 0 ? (
+                <section className="space-y-3">
+                  {showRecentStrip ? (
+                    <h2 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+                      All projects
+                    </h2>
+                  ) : null}
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {sortedFiltered.map((p) => (
+                      <ProjectCard
+                        key={`all-${p.id}`}
+                        project={p}
+                        onRename={startRename}
+                        onDuplicate={duplicateFromCard}
+                        onExport={exportProject}
+                        onDeleteRequest={setDeleteTarget}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </div>
           )}
           </div>

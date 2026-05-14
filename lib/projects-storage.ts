@@ -22,6 +22,7 @@ export type MailrProject = {
   id: string;
   name: string;
   createdAt: number;
+  lastOpenedAt?: number;
   html: string;
   smtp: MailrSmtpConfig;
   envelope: MailrEnvelope;
@@ -80,8 +81,13 @@ export function parseSmtpConfig(raw: unknown): MailrSmtpConfig {
 }
 
 function withProjectDefaults(p: MailrProject): MailrProject {
+  const lastOpened =
+    typeof p.lastOpenedAt === "number" && Number.isFinite(p.lastOpenedAt)
+      ? p.lastOpenedAt
+      : undefined;
   return {
     ...p,
+    lastOpenedAt: lastOpened,
     smtp: parseSmtpConfig(p.smtp),
     envelope: parseEnvelopeConfig(p.envelope),
   };
@@ -128,6 +134,27 @@ export function updateProjectName(id: string, name: string) {
   if (idx === -1) return;
   const next = [...projects];
   next[idx] = { ...next[idx], name: trimmed };
+  persistProjects(next);
+  notifyProjectsUpdated();
+}
+
+export function touchProjectOpened(id: string) {
+  const projects = loadProjects();
+  const idx = projects.findIndex((p) => p.id === id);
+  if (idx === -1) return;
+  const next = [...projects];
+  next[idx] = { ...next[idx], lastOpenedAt: Date.now() };
+  persistProjects(next);
+  notifyProjectsUpdated();
+}
+
+export function clearProjectRecent(id: string) {
+  const projects = loadProjects();
+  const idx = projects.findIndex((p) => p.id === id);
+  if (idx === -1) return;
+  const next = [...projects];
+  const { lastOpenedAt: _removed, ...rest } = next[idx];
+  next[idx] = rest as MailrProject;
   persistProjects(next);
   notifyProjectsUpdated();
 }
