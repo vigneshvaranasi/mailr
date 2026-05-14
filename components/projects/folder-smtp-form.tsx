@@ -1,49 +1,58 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   createDefaultSmtpConfig,
-  getProjectById,
-  updateProjectSmtp,
+  getFolderById,
+  updateFolderSmtp,
   type MailrSmtpConfig,
 } from "@/lib/projects-storage";
 
-type ProjectSmtpConfigProps = {
-  projectId: string;
+type FolderSmtpFormProps = {
+  folderId: string;
 };
 
-export function ProjectSmtpConfig({ projectId }: ProjectSmtpConfigProps) {
+export function FolderSmtpForm({ folderId }: FolderSmtpFormProps) {
+  const uid = useId();
+  const hostId = `${uid}-host`;
+  const portId = `${uid}-port`;
+  const userId = `${uid}-user`;
+  const passId = `${uid}-pass`;
+
   const [ready, setReady] = useState(false);
   const [missing, setMissing] = useState(false);
   const [form, setForm] = useState<MailrSmtpConfig>(createDefaultSmtpConfig);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- hydrate from localStorage */
+    /* eslint-disable react-hooks/set-state-in-effect */
     setMissing(false);
     setReady(false);
-    const p = getProjectById(projectId);
-    if (!p) {
+    const f = getFolderById(folderId);
+    if (!f) {
       setMissing(true);
       return;
     }
-    setForm({ ...p.smtp });
+    setForm({ ...f.smtp });
     setReady(true);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [projectId]);
+  }, [folderId]);
 
-  const setField = useCallback(<K extends keyof MailrSmtpConfig>(key: K, value: MailrSmtpConfig[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }, []);
+  const setField = useCallback(
+    <K extends keyof MailrSmtpConfig>(key: K, value: MailrSmtpConfig[K]) => {
+      setForm((prev) => ({ ...prev, [key]: value }));
+    },
+    [],
+  );
 
   function save(e: FormEvent) {
     e.preventDefault();
-    const p = getProjectById(projectId);
-    if (!p) {
-      toast.error("Project not found");
+    const f = getFolderById(folderId);
+    if (!f) {
+      toast.error("Folder not found");
       return;
     }
     const port = Number(form.port);
@@ -51,45 +60,38 @@ export function ProjectSmtpConfig({ projectId }: ProjectSmtpConfigProps) {
       toast.error("Invalid port", { description: "Use 1-65535." });
       return;
     }
-    const next: MailrSmtpConfig = {
-      ...form,
-      port,
-    };
-    updateProjectSmtp(projectId, next);
+    const next: MailrSmtpConfig = { ...form, port };
+    updateFolderSmtp(folderId, next);
+    setForm({ ...next });
     toast.success("SMTP settings saved");
   }
 
   if (missing) {
     return (
-      <p className="text-muted-foreground text-sm">
-        Project not found. It may have been removed.
-      </p>
+      <p className="text-muted-foreground text-sm">Folder not found.</p>
     );
   }
 
   if (!ready) {
-    return (
-      <p className="text-muted-foreground text-sm">Loading…</p>
-    );
+    return <p className="text-muted-foreground text-sm">Loading…</p>;
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg space-y-6">
+    <div className="space-y-4">
       <div>
-        <h2 className="text-foreground text-lg font-semibold">SMTP config</h2>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Outbound mail settings for this project. Stored only in this
-          browser; not sent to a server until you send mail.
+        <h3 className="text-foreground text-sm font-semibold">SMTP</h3>
+        <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+          Shared by every project in this folder. Stored only in this browser.
         </p>
       </div>
 
       <form onSubmit={save} className="space-y-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="smtp-host">
+          <label className="text-sm font-medium" htmlFor={hostId}>
             Host
           </label>
           <Input
-            id="smtp-host"
+            id={hostId}
             autoComplete="off"
             placeholder="smtp.example.com"
             value={form.host}
@@ -98,11 +100,11 @@ export function ProjectSmtpConfig({ projectId }: ProjectSmtpConfigProps) {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="smtp-port">
+          <label className="text-sm font-medium" htmlFor={portId}>
             Port
           </label>
           <Input
-            id="smtp-port"
+            id={portId}
             type="number"
             min={1}
             max={65535}
@@ -128,23 +130,26 @@ export function ProjectSmtpConfig({ projectId }: ProjectSmtpConfigProps) {
         </label>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="smtp-user">
+          <label className="text-sm font-medium" htmlFor={userId}>
             Username
           </label>
           <Input
-            id="smtp-user"
+            id={userId}
             autoComplete="username"
             value={form.username}
             onChange={(e) => setField("username", e.target.value)}
           />
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            Also used as the From email when sending from projects in this folder.
+          </p>
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium" htmlFor="smtp-pass">
+          <label className="text-sm font-medium" htmlFor={passId}>
             Password
           </label>
           <Input
-            id="smtp-pass"
+            id={passId}
             type="password"
             autoComplete="current-password"
             value={form.password}
@@ -152,7 +157,7 @@ export function ProjectSmtpConfig({ projectId }: ProjectSmtpConfigProps) {
           />
         </div>
 
-        <Button type="submit">Save</Button>
+        <Button type="submit">Save SMTP</Button>
       </form>
     </div>
   );

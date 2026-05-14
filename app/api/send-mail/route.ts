@@ -46,10 +46,14 @@ export async function POST(req: Request) {
     return bad("SMTP port must be 1-65535");
   }
 
-  const fromEmail = envelope.fromEmail.trim();
-  if (!fromEmail || !isLooseEmail(fromEmail)) {
-    return bad("Valid From email is required");
+  const username =
+    typeof smtp.username === "string" ? smtp.username.trim() : "";
+  if (!username || !isLooseEmail(username)) {
+    return bad(
+      "SMTP username must be a valid email address",
+    );
   }
+  const fromEmail = username;
 
   const toList = splitAddressList(envelope.to);
   if (toList.length === 0) {
@@ -85,7 +89,6 @@ export async function POST(req: Request) {
     (typeof body.projectName === "string" ? body.projectName.trim() : "") ||
     "No subject";
 
-  const username = typeof smtp.username === "string" ? smtp.username : "";
   const password = typeof smtp.password === "string" ? smtp.password : "";
 
   const fromName = envelope.fromName.trim();
@@ -95,9 +98,7 @@ export async function POST(req: Request) {
     port,
     secure: Boolean(smtp.secure),
     auth:
-      username || password
-        ? { user: username, pass: password }
-        : undefined,
+      username || password ? { user: username, pass: password } : undefined,
   });
 
   try {

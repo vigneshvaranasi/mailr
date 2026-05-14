@@ -8,7 +8,6 @@ import {
   Mails,
   PanelLeft,
   Settings,
-  Sliders,
 } from "lucide-react";
 
 import {
@@ -41,13 +40,6 @@ export function AppSidebar({ projectId }: AppSidebarProps) {
       tooltip: "Editor",
       icon: FileCode2,
       active: pathname === base,
-    },
-    {
-      href: `${base}/config`,
-      label: "Config",
-      tooltip: "SMTP config",
-      icon: Sliders,
-      active: pathname.startsWith(`${base}/config`),
     },
     {
       href: `${base}/sender-recipients`,

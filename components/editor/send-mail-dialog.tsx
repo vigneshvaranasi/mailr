@@ -12,8 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { splitAddressList } from "@/lib/mail-addresses";
-import { getProjectById } from "@/lib/projects-storage";
+import { isLooseEmail, splitAddressList } from "@/lib/mail-addresses";
+import { getProjectById, getSmtpForProject } from "@/lib/projects-storage";
 
 type SendMailDialogProps = {
   projectId: string;
@@ -59,15 +59,26 @@ export function SendMailDialog({
       return;
     }
 
-    if (!p.smtp.host.trim()) {
-      toast.error("Set SMTP host in Config", {
-        description: "Open Config and save your mail server settings.",
+    const smtp = getSmtpForProject(projectId);
+    if (!smtp?.host.trim()) {
+      toast.error("Set SMTP for this folder", {
+        description:
+          "On Projects, select this project’s folder and click Folder settings → SMTP.",
       });
       return;
     }
 
-    if (!p.envelope.fromEmail.trim() || !p.envelope.to.trim()) {
-      toast.error("Set From and To", {
+    const fromUser = smtp.username.trim();
+    if (!fromUser || !isLooseEmail(fromUser)) {
+      toast.error("SMTP username must be your sender email", {
+        description:
+          "Projects → Folder settings → SMTP: set Username to the address you send from.",
+      });
+      return;
+    }
+
+    if (!p.envelope.to.trim()) {
+      toast.error("Set To", {
         description: "Open Sender & recipients and save.",
       });
       return;
@@ -79,7 +90,7 @@ export function SendMailDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          smtp: p.smtp,
+          smtp,
           envelope: p.envelope,
           html: p.html,
           projectName: p.name,
@@ -100,6 +111,14 @@ export function SendMailDialog({
       setSending(false);
     }
   }, [projectId, onOpenChange]);
+
+  const smtpPreview = project ? getSmtpForProject(projectId) : undefined;
+  const fromAddr = smtpPreview?.username?.trim() ?? "";
+  const fromNamePreview = project?.envelope.fromName.trim() ?? "";
+  const fromLine =
+    fromAddr && fromNamePreview
+      ? `${fromNamePreview} <${fromAddr}>`
+      : fromAddr || fromNamePreview || "";
 
   const subject =
     project?.envelope.subject.trim() ||
@@ -122,12 +141,14 @@ export function SendMailDialog({
         <DialogHeader>
           <DialogTitle>Send this email?</DialogTitle>
           <DialogDescription>
-            Mail is sent through your SMTP settings.
+            Mail uses SMTP saved for this project&apos;s folder on the Projects
+            page.
           </DialogDescription>
         </DialogHeader>
 
         {project ? (
           <div className="border-border space-y-3 rounded-md border p-3">
+            <Detail label="From" value={fromLine} empty="(SMTP username)" />
             <Detail label="Subject" value={subject} />
             <Detail label="To" value={toPreview} empty="(none)" />
             <Detail label="Cc" value={ccPreview} />

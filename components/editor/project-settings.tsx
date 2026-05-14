@@ -225,7 +225,7 @@ export function ProjectSettings({ projectId }: ProjectSettingsProps) {
               <div className="min-w-0 space-y-0.5">
                 <p className="text-sm font-medium">Duplicate</p>
                 <p className="text-muted-foreground text-xs leading-relaxed">
-                  New project, same HTML, SMTP, and recipients. Opens the copy.
+                  New project, same HTML, folder, and recipients. Opens the copy.
                 </p>
               </div>
             </div>

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import {
   createDefaultEnvelope,
   getProjectById,
+  getSmtpForProject,
   updateProjectEnvelope,
   type MailrEnvelope,
 } from "@/lib/projects-storage";
@@ -28,9 +29,21 @@ export function ProjectSenderRecipients({
   const [ready, setReady] = useState(false);
   const [missing, setMissing] = useState(false);
   const [form, setForm] = useState<MailrEnvelope>(createDefaultEnvelope);
+  const [smtpFromHint, setSmtpFromHint] = useState("");
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- hydrate from localStorage */
+    function syncFromHint() {
+      const s = getSmtpForProject(projectId);
+      setSmtpFromHint(s?.username?.trim() ?? "");
+    }
+    syncFromHint();
+    window.addEventListener("mailr-projects-updated", syncFromHint);
+    return () =>
+      window.removeEventListener("mailr-projects-updated", syncFromHint);
+  }, [projectId]);
+
+  useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     setMissing(false);
     setReady(false);
     const p = getProjectById(projectId);
@@ -56,7 +69,11 @@ export function ProjectSenderRecipients({
       toast.error("Project not found");
       return;
     }
-    updateProjectEnvelope(projectId, { ...form });
+    const smtp = getSmtpForProject(projectId);
+    updateProjectEnvelope(projectId, {
+      ...form,
+      fromEmail: smtp?.username?.trim() ?? "",
+    });
     toast.success("Sender & recipients saved");
   }
 
@@ -99,17 +116,16 @@ export function ProjectSenderRecipients({
             />
           </div>
           <div className="space-y-2 sm:col-span-2">
-            <label className="text-sm font-medium" htmlFor="from-email">
-              From email
-            </label>
-            <Input
-              id="from-email"
-              type="email"
-              autoComplete="email"
-              placeholder="hello@example.com"
-              value={form.fromEmail}
-              onChange={(e) => setField("fromEmail", e.target.value)}
-            />
+            <div className="text-sm font-medium">From email</div>
+            <div className="border-border bg-muted/40 text-muted-foreground rounded-md border px-3 py-2 text-sm">
+              {smtpFromHint ? (
+                <span className="text-foreground font-mono text-xs">
+                  {smtpFromHint}
+                </span>
+              ) : (
+                <span>Set SMTP username in Folder settings (Projects page).</span>
+              )}
+            </div>
           </div>
         </div>
 

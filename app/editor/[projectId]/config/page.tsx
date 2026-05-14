@@ -1,10 +1,5 @@
-import { ProjectSmtpConfig } from "@/components/editor/project-smtp-config";
+import { redirect } from "next/navigation";
 
-export default async function EditorConfigPage({
-  params,
-}: Readonly<{
-  params: Promise<{ projectId: string }>;
-}>) {
-  const { projectId } = await params;
-  return <ProjectSmtpConfig projectId={projectId} />;
+export default function EditorConfigRedirectPage() {
+  redirect("/projects");
 }
