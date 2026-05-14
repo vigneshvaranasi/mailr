@@ -13,12 +13,26 @@ import {
 import type { EditorProps, Monaco } from "@monaco-editor/react";
 import type * as MonacoEditorModule from "monaco-editor";
 import { emmetHTML } from "emmet-monaco-es";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  Minimize2,
+  Monitor,
+  PanelLeftClose,
+  PanelRightClose,
+  Smartphone,
+  Tablet,
+} from "lucide-react";
+import { usePanelRef } from "react-resizable-panels";
 
+import { Button } from "@/components/ui/button";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { cn } from "@/lib/utils";
 import {
   getProjectById,
   updateProjectHtml,
@@ -155,15 +169,137 @@ function MonacoHtmlPane({ value, onChange }: InnerEditorProps) {
   );
 }
 
-function HtmlPreview({ html }: { html: string }) {
+type PreviewViewport = "desktop" | "tablet" | "mobile";
+
+function HtmlPreview({
+  html,
+  onHidePreview,
+}: {
+  html: string;
+  onHidePreview?: () => void;
+}) {
   const empty = html.trim().length === 0;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [viewport, setViewport] = useState<PreviewViewport>("desktop");
+  const [fullscreen, setFullscreen] = useState(false);
+
+  useEffect(() => {
+    const sync = () => {
+      const el = rootRef.current;
+      setFullscreen(Boolean(el && document.fullscreenElement === el));
+    };
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+
+  const toggleFullscreen = useCallback(async () => {
+    const el = rootRef.current;
+    if (!el || empty) return;
+    try {
+      if (document.fullscreenElement === el) {
+        await document.exitFullscreen();
+      } else {
+        await el.requestFullscreen();
+      }
+    } catch {
+      /* browsers may deny fullscreen */
+    }
+  }, [empty]);
+
+  const previewToolbarBtn =
+    "border-0 bg-transparent text-[#d0d0d0] shadow-none hover:bg-[#3c3c3c] hover:text-white";
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col bg-[#1e1e1e]">
-      <div className="flex shrink-0 items-center border-b border-[#3c3c3c] bg-[#252526] px-3 py-2">
-        <span className="text-xs font-medium tracking-wide text-[#cccccc]">
-          Preview
-        </span>
+    <div
+      ref={rootRef}
+      className="relative flex h-full min-h-0 w-full flex-col bg-[#1e1e1e]"
+    >
+      <div className="pointer-events-none absolute top-2 right-2 z-10 sm:top-2.5 sm:right-2.5">
+        <div
+          className="pointer-events-auto flex items-center gap-0.5 rounded-lg border border-[#3c3c3c]/90 bg-[#252526]/95 p-0.5 shadow-md backdrop-blur-sm"
+          role="toolbar"
+          aria-label="Preview controls"
+        >
+          <Button
+            type="button"
+            variant={viewport === "desktop" ? "secondary" : "ghost"}
+            size="icon-xs"
+            className={cn(
+              previewToolbarBtn,
+              viewport === "desktop" && "bg-[#3c3c3c] text-white hover:bg-[#3c3c3c]",
+            )}
+            aria-pressed={viewport === "desktop"}
+            title="Desktop width"
+            disabled={empty}
+            onClick={() => setViewport("desktop")}
+          >
+            <Monitor className="size-3.5" />
+            <span className="sr-only">Desktop width</span>
+          </Button>
+          <Button
+            type="button"
+            variant={viewport === "tablet" ? "secondary" : "ghost"}
+            size="icon-xs"
+            className={cn(
+              previewToolbarBtn,
+              viewport === "tablet" && "bg-[#3c3c3c] text-white hover:bg-[#3c3c3c]",
+            )}
+            aria-pressed={viewport === "tablet"}
+            title="Tablet width (768px)"
+            disabled={empty}
+            onClick={() => setViewport("tablet")}
+          >
+            <Tablet className="size-3.5" />
+            <span className="sr-only">Tablet width</span>
+          </Button>
+          <Button
+            type="button"
+            variant={viewport === "mobile" ? "secondary" : "ghost"}
+            size="icon-xs"
+            className={cn(
+              previewToolbarBtn,
+              viewport === "mobile" && "bg-[#3c3c3c] text-white hover:bg-[#3c3c3c]",
+            )}
+            aria-pressed={viewport === "mobile"}
+            title="Mobile width (390px)"
+            disabled={empty}
+            onClick={() => setViewport("mobile")}
+          >
+            <Smartphone className="size-3.5" />
+            <span className="sr-only">Mobile width</span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            className={previewToolbarBtn}
+            title={fullscreen ? "Exit fullscreen" : "Fullscreen preview"}
+            disabled={empty}
+            onClick={() => void toggleFullscreen()}
+          >
+            {fullscreen ? (
+              <Minimize2 className="size-3.5" />
+            ) : (
+              <Maximize2 className="size-3.5" />
+            )}
+            <span className="sr-only">
+              {fullscreen ? "Exit fullscreen" : "Fullscreen preview"}
+            </span>
+          </Button>
+          {onHidePreview ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className={previewToolbarBtn}
+              title="Hide preview"
+              onClick={onHidePreview}
+            >
+              <PanelRightClose className="size-3.5" />
+              <span className="sr-only">Hide preview</span>
+            </Button>
+          ) : null}
+        </div>
       </div>
       <div className="min-h-0 flex-1 bg-neutral-200">
         {empty ? (
@@ -171,12 +307,33 @@ function HtmlPreview({ html }: { html: string }) {
             HTML preview will appear here as you type.
           </div>
         ) : (
-          <iframe
-            className="h-full w-full border-0 bg-white"
-            srcDoc={html}
-            title="HTML preview"
-            sandbox=""
-          />
+          <div
+            className={cn(
+              "flex h-full min-h-0 w-full",
+              viewport === "desktop"
+                ? "flex-col"
+                : "justify-center overflow-auto p-3 sm:p-4",
+            )}
+          >
+            <div
+              className={cn(
+                "flex min-h-0 flex-col bg-white",
+                viewport === "desktop" &&
+                  "h-full w-full min-h-0 flex-1 shadow-none",
+                viewport === "tablet" &&
+                  "h-full w-full max-w-[768px] shadow-[0_8px_30px_rgba(0,0,0,0.12)] ring-1 ring-black/10",
+                viewport === "mobile" &&
+                  "h-full w-full max-w-[390px] rounded-[12px] shadow-[0_12px_40px_rgba(0,0,0,0.15)] ring-1 ring-black/10",
+              )}
+            >
+              <iframe
+                className="min-h-0 w-full flex-1 border-0 bg-white"
+                srcDoc={html}
+                title="HTML preview"
+                sandbox=""
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -193,9 +350,27 @@ export function ProjectHtmlEditor({ projectId }: ProjectHtmlEditorProps) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestRef = useRef<string>("");
   const hydratedRef = useRef(false);
+  const codePanelRef = usePanelRef();
+  const previewPanelRef = usePanelRef();
+  const [codeCollapsed, setCodeCollapsed] = useState(false);
+  const [previewCollapsed, setPreviewCollapsed] = useState(false);
+
+  const collapseCodePane = useCallback(() => {
+    if (previewPanelRef.current?.isCollapsed()) {
+      previewPanelRef.current.expand();
+    }
+    codePanelRef.current?.collapse();
+  }, []);
+
+  const collapsePreviewPane = useCallback(() => {
+    if (codePanelRef.current?.isCollapsed()) {
+      codePanelRef.current.expand();
+    }
+    previewPanelRef.current?.collapse();
+  }, []);
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect -- hydrate from localStorage */
+    /* eslint-disable react-hooks/set-state-in-effect */
     const p = getProjectById(projectId);
     if (!p) {
       setText("");
@@ -243,32 +418,83 @@ export function ProjectHtmlEditor({ projectId }: ProjectHtmlEditorProps) {
   }
 
   return (
-    <div className="flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0">
+    <div className="relative flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0">
+      {codeCollapsed ? (
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon-sm"
+          className="absolute top-1/2 left-1 z-20 -translate-y-1/2 shadow-md"
+          title="Show editor"
+          onClick={() => codePanelRef.current?.expand()}
+        >
+          <ChevronRight className="size-4" />
+          <span className="sr-only">Show editor</span>
+        </Button>
+      ) : null}
+      {previewCollapsed ? (
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon-sm"
+          className="absolute top-1/2 right-1 z-20 -translate-y-1/2 shadow-md"
+          title="Show preview"
+          onClick={() => previewPanelRef.current?.expand()}
+        >
+          <ChevronLeft className="size-4" />
+          <span className="sr-only">Show preview</span>
+        </Button>
+      ) : null}
       <ResizablePanelGroup orientation="horizontal" className="h-full min-h-0">
-        <ResizablePanel defaultSize="50%" minSize="20" className="min-w-0">
-          <div className="flex h-full min-h-0 flex-col">
-            <div className="flex shrink-0 items-center border-b border-[#3c3c3c] bg-[#252526] px-3 py-2">
-              <span className="text-xs font-medium tracking-wide text-[#cccccc]">
-                HTML
-              </span>
+        <ResizablePanel
+          id="editor-code"
+          panelRef={codePanelRef}
+          collapsible
+          collapsedSize={0}
+          defaultSize="50%"
+          minSize={14}
+          className="flex min-h-0 min-w-0 flex-col"
+          onResize={(size) => setCodeCollapsed(size.asPercentage < 0.75)}
+        >
+          <div className="relative min-h-0 flex-1">
+            <div className="pointer-events-none absolute top-2 left-2 z-10">
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon-sm"
+                className="pointer-events-auto size-8 border-0 bg-[#252526]/95 text-[#d0d0d0] shadow-md backdrop-blur-sm hover:bg-[#3c3c3c] hover:text-white"
+                title="Hide editor"
+                onClick={collapseCodePane}
+              >
+                <PanelLeftClose className="size-4" />
+                <span className="sr-only">Hide editor</span>
+              </Button>
             </div>
-            <div className="min-h-0 flex-1">
-              <MonacoHtmlPane
-                value={text}
-                onChange={(v) => {
-                  setText(v);
-                  scheduleSave(v);
-                }}
-              />
-            </div>
+            <MonacoHtmlPane
+              value={text}
+              onChange={(v) => {
+                setText(v);
+                scheduleSave(v);
+              }}
+            />
           </div>
         </ResizablePanel>
         <ResizableHandle
           withHandle
+          disabled={codeCollapsed || previewCollapsed}
           className="bg-[#3c3c3c] after:bg-[#3c3c3c] [&>div]:rounded-none [&>div]:border-0"
         />
-        <ResizablePanel defaultSize="50%" minSize="20" className="min-w-0">
-          <HtmlPreview html={previewHtml} />
+        <ResizablePanel
+          id="editor-preview"
+          panelRef={previewPanelRef}
+          collapsible
+          collapsedSize={0}
+          defaultSize="50%"
+          minSize={14}
+          className="flex min-h-0 min-w-0 flex-col"
+          onResize={(size) => setPreviewCollapsed(size.asPercentage < 0.75)}
+        >
+          <HtmlPreview html={previewHtml} onHidePreview={collapsePreviewPane} />
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>

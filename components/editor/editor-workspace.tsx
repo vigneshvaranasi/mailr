@@ -84,10 +84,22 @@ export function EditorWorkspace({ projectId, children }: EditorWorkspaceProps) {
     <SidebarProvider>
       <AppSidebar projectId={projectId} />
       <SidebarInset className="flex max-h-dvh flex-col overflow-hidden">
-        <header className="border-border bg-background/80 flex h-14 shrink-0 items-center justify-between gap-3 border-b px-4 backdrop-blur-md md:px-6">
-          <h1 className="text-foreground min-w-0 truncate text-sm font-semibold md:text-base">
-            {projectName}
-          </h1>
+        <header className="border-sidebar-border bg-sidebar text-sidebar-foreground flex h-14 shrink-0 items-center justify-between gap-3 border-b px-4 md:px-6">
+          <div className="flex min-w-0 items-center gap-2 md:gap-3">
+            <Link
+              href="/"
+              className="text-sidebar-foreground/70 hover:text-sidebar-foreground shrink-0 text-sm font-semibold tracking-tight transition-colors"
+            >
+              Mailr
+            </Link>
+            <span
+              className="bg-sidebar-border hidden h-4 w-px shrink-0 sm:block"
+              aria-hidden
+            />
+            <h1 className="min-w-0 truncate text-sm font-semibold md:text-base">
+              {projectName}
+            </h1>
+          </div>
           <Button
             type="button"
             variant="secondary"

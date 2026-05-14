@@ -199,12 +199,23 @@ export default function ProjectsPage() {
     hydrated && projects.length > 0 && filtered.length === 0;
 
   return (
-    <div className="flex min-h-screen flex-1 flex-col">
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6">
-        <div className="space-y-8">
+    <div className="bg-background flex min-h-screen flex-1 flex-col">
+      <header className="border-border bg-background border-b">
+        <div className="mx-auto flex h-14 max-w-5xl items-center px-4 sm:px-6">
+          <Link
+            href="/"
+            className="text-foreground rounded-sm text-lg font-semibold tracking-tight outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Mailr
+          </Link>
+        </div>
+      </header>
+
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">
+        <div className="space-y-6">
           <div>
-            <h2 className="text-lg font-semibold">Projects</h2>
-            <p className="text-muted-foreground text-sm">
+            <h1 className="text-lg font-semibold tracking-tight">Projects</h1>
+            <p className="text-muted-foreground mt-1 text-sm">
               Your email projects are saved locally in this browser.
             </p>
           </div>
@@ -240,79 +251,75 @@ export default function ProjectsPage() {
               </DropdownMenu>
             </div>
 
-            {showEmpty ? (
-              <div className="text-muted-foreground rounded-lg border border-dashed py-12 text-center text-sm">
-                No projects yet. Create one or import a previous export.
-              </div>
-            ) : showNoMatches ? (
-              <div className="text-muted-foreground rounded-lg border border-dashed py-12 text-center text-sm">
-                No projects match &ldquo;{query}&rdquo;.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {filtered.map((p) => (
-                  <div
-                    key={p.id}
-                    className="group bg-card text-card-foreground hover:bg-muted/30 relative rounded-lg border p-4 transition-colors"
-                  >
-                    <Link
-                      href={`/editor/${p.id}`}
-                      className="ring-ring/50 absolute inset-0 z-0 rounded-lg outline-none focus-visible:ring-2"
-                      aria-label={`Open ${p.name}`}
-                    />
-                    <div className="relative z-10 flex items-start justify-between gap-2 pointer-events-none">
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-sm font-medium leading-tight">
-                          {p.name}
-                        </h3>
-                        <p className="text-muted-foreground mt-1 text-xs">
-                          Created {timeAgo(p.createdAt)}
-                        </p>
-                      </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            className="-mt-1 -mr-1 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100 pointer-events-auto"
-                            aria-label="Project actions"
-                          >
-                            <MoreVerticalIcon />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem
-                            onSelect={() => startRename(p.id)}
-                          >
-                            <PencilIcon />
-                            Rename
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={() => duplicateFromCard(p.id)}
-                          >
-                            <CopyIcon />
-                            Duplicate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onSelect={() => exportProject(p.id)}
-                          >
-                            <DownloadIcon />
-                            Export as JSON
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onSelect={() => setDeleteTarget(p)}
-                          >
-                            <Trash2Icon />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+          {showEmpty ? (
+            <div className="text-muted-foreground rounded-lg border border-dashed py-12 text-center text-sm">
+              No projects yet. Create one or import a previous export.
+            </div>
+          ) : showNoMatches ? (
+            <div className="text-muted-foreground rounded-lg border border-dashed py-12 text-center text-sm">
+              No projects match &ldquo;{query}&rdquo;.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {filtered.map((p) => (
+                <div
+                  key={p.id}
+                  className="group bg-card text-card-foreground hover:bg-muted/30 relative rounded-lg border p-4 transition-colors"
+                >
+                  <Link
+                    href={`/editor/${p.id}`}
+                    className="ring-ring/50 absolute inset-0 z-0 rounded-lg outline-none focus-visible:ring-2"
+                    aria-label={`Open ${p.name}`}
+                  />
+                  <div className="relative z-10 flex items-start justify-between gap-2 pointer-events-none">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-sm font-medium leading-tight">
+                        {p.name}
+                      </h3>
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        Created {timeAgo(p.createdAt)}
+                      </p>
                     </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          className="-mt-1 -mr-1 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100 pointer-events-auto"
+                          aria-label="Project actions"
+                        >
+                          <MoreVerticalIcon />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuItem onSelect={() => startRename(p.id)}>
+                          <PencilIcon />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() => duplicateFromCard(p.id)}
+                        >
+                          <CopyIcon />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => exportProject(p.id)}>
+                          <DownloadIcon />
+                          Export as JSON
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onSelect={() => setDeleteTarget(p)}
+                        >
+                          <Trash2Icon />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
+          )}
           </div>
         </div>
       </main>
