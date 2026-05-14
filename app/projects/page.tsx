@@ -34,7 +34,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { downloadProjectJson } from "@/lib/project-export";
-import { cardThumbnailSrcDoc } from "@/lib/card-thumbnail-srcdoc";
+import { usePreviewAppearance } from "@/lib/preview-appearance";
+import { buildPreviewSrcDoc } from "@/lib/preview-srcdoc";
 import {
   addProject,
   clearProjectRecent,
@@ -80,6 +81,7 @@ const PREVIEW_BASE_H = 720;
 function ProjectCardThumbnail({ html }: { html: string }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.35);
+  const previewAppearance = usePreviewAppearance();
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -108,7 +110,10 @@ function ProjectCardThumbnail({ html }: { html: string }) {
       ) : (
         <iframe
           title="Email preview thumbnail"
-          srcDoc={cardThumbnailSrcDoc(html)}
+          srcDoc={buildPreviewSrcDoc(html, {
+            appearance: previewAppearance,
+            scrollLock: true,
+          })}
           sandbox=""
           className="pointer-events-none absolute top-0 left-0 overflow-hidden border-0 bg-white"
           style={{
