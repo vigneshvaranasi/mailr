@@ -8,6 +8,7 @@ import {
   Mails,
   PanelLeft,
   Settings,
+  Table2,
 } from "lucide-react";
 
 import {
@@ -47,6 +48,13 @@ export function AppSidebar({ projectId }: AppSidebarProps) {
       tooltip: "Sender and recipients",
       icon: Mails,
       active: pathname.startsWith(`${base}/sender-recipients`),
+    },
+    {
+      href: `${base}/dynamic-data`,
+      label: "Dynamic data",
+      tooltip: "Dynamic data",
+      icon: Table2,
+      active: pathname.startsWith(`${base}/dynamic-data`),
     },
     {
       href: `${base}/settings`,

@@ -155,6 +155,12 @@ export function ProjectSenderRecipients({
             value={form.subject}
             onChange={(e) => setField("subject", e.target.value)}
           />
+          <p className="text-muted-foreground text-xs leading-relaxed">
+            For Dynamic data, use the same placeholders as in HTML, e.g. {" "}
+            <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+              {"Hi {{name}}"}
+            </code>
+          </p>
         </div>
 
         <div className="space-y-2">

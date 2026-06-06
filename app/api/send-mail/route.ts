@@ -114,6 +114,7 @@ export async function POST(req: Request) {
       html: html.length > 0 ? html : "<p></p>",
     });
   } catch (err) {
+    console.error("SMTP send failed", err);
     const msg =
       err instanceof Error ? err.message : "Failed to send email via SMTP";
     return NextResponse.json(

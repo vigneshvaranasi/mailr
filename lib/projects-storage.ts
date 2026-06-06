@@ -1,3 +1,5 @@
+import { normalizeMergeJson, type MergeRow } from "@/lib/mail-merge";
+
 const MAILR_PROJECTS_STORAGE_KEY = "mailr.projects";
 const MAILR_FOLDERS_STORAGE_KEY = "mailr.folders";
 
@@ -34,6 +36,8 @@ export type MailrProject = {
   folderId: string;
   html: string;
   envelope: MailrEnvelope;
+  mergeRows?: MergeRow[];
+  mergeRecipientKey?: string;
 };
 
 export function createDefaultSmtpConfig(): MailrSmtpConfig {
@@ -102,12 +106,36 @@ function withFolderDefaults(partial: {
   };
 }
 
+function parseStoredMergeRows(raw: unknown): MergeRow[] | undefined {
+  if (raw === undefined || raw === null) return undefined;
+  const n = normalizeMergeJson(raw);
+  return n && n.length > 0 ? n : undefined;
+}
+
+function parseStoredRecipientKey(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const t = raw.trim();
+  return t || undefined;
+}
+
 function withProjectDefaults(p: MailrProject): MailrProject {
   const lastOpened =
     typeof p.lastOpenedAt === "number" && Number.isFinite(p.lastOpenedAt)
       ? p.lastOpenedAt
       : undefined;
-  return {
+  const mergeRows = parseStoredMergeRows(
+    (p as Record<string, unknown>).mergeRows,
+  );
+  let mergeRecipientKey = parseStoredRecipientKey(
+    (p as Record<string, unknown>).mergeRecipientKey,
+  );
+  if (mergeRows?.length && mergeRecipientKey) {
+    const hasCol = mergeRows.some((row) => mergeRecipientKey! in row);
+    if (!hasCol) mergeRecipientKey = undefined;
+  } else {
+    mergeRecipientKey = undefined;
+  }
+  const base: MailrProject = {
     ...p,
     lastOpenedAt: lastOpened,
     folderId: typeof p.folderId === "string" ? p.folderId : "",
@@ -115,6 +143,13 @@ function withProjectDefaults(p: MailrProject): MailrProject {
     html: typeof p.html === "string" ? p.html : "",
     name: typeof p.name === "string" ? p.name : "Untitled",
   };
+  if (mergeRows?.length && mergeRecipientKey) {
+    return { ...base, mergeRows, mergeRecipientKey };
+  }
+  if (mergeRows?.length) {
+    return { ...base, mergeRows };
+  }
+  return base;
 }
 
 function persistFoldersRaw(folders: MailrFolder[]) {
@@ -238,6 +273,22 @@ function validateMailrStorageOnce(): void {
       "lastOpenedAt" in o &&
       o.lastOpenedAt != null &&
       (typeof o.lastOpenedAt !== "number" || !Number.isFinite(o.lastOpenedAt))
+    ) {
+      wipeMailrStorage();
+      return;
+    }
+    if (
+      "mergeRows" in o &&
+      o.mergeRows != null &&
+      !Array.isArray(o.mergeRows)
+    ) {
+      wipeMailrStorage();
+      return;
+    }
+    if (
+      "mergeRecipientKey" in o &&
+      o.mergeRecipientKey != null &&
+      typeof o.mergeRecipientKey !== "string"
     ) {
       wipeMailrStorage();
       return;
@@ -433,7 +484,7 @@ export function addProject(project: MailrProject) {
 
 /** Deep copy with new id, name suffix, fresh createdAt; stays in same folder. */
 export function duplicateMailrProject(source: MailrProject): MailrProject {
-  return {
+  const copy: MailrProject = {
     id: crypto.randomUUID(),
     name: `${source.name} (copy)`,
     createdAt: Date.now(),
@@ -441,6 +492,13 @@ export function duplicateMailrProject(source: MailrProject): MailrProject {
     html: source.html,
     envelope: { ...source.envelope },
   };
+  if (source.mergeRows?.length) {
+    copy.mergeRows = source.mergeRows.map((r) => ({ ...r }));
+  }
+  if (source.mergeRecipientKey) {
+    copy.mergeRecipientKey = source.mergeRecipientKey;
+  }
+  return copy;
 }
 
 export function updateProjectHtml(id: string, html: string) {
@@ -458,5 +516,36 @@ export function updateProjectEnvelope(id: string, envelope: MailrEnvelope) {
   if (idx === -1) return;
   const next = [...projects];
   next[idx] = { ...next[idx], envelope };
+  persistProjects(next);
+}
+
+export function updateProjectMergeData(
+  id: string,
+  mergeRows: MergeRow[] | undefined,
+  mergeRecipientKey: string | undefined,
+) {
+  const projects = loadProjects();
+  const idx = projects.findIndex((p) => p.id === id);
+  if (idx === -1) return;
+  const next = [...projects];
+  const cur = next[idx];
+  const rows =
+    mergeRows && mergeRows.length > 0 ? mergeRows : undefined;
+  let rk = mergeRecipientKey?.trim() || undefined;
+  if (rows && rk && !rows.some((r) => rk! in r)) {
+    rk = undefined;
+  }
+  const cleaned: MailrProject = { ...cur };
+  if (rows && rk) {
+    cleaned.mergeRows = rows;
+    cleaned.mergeRecipientKey = rk;
+  } else if (rows) {
+    cleaned.mergeRows = rows;
+    delete cleaned.mergeRecipientKey;
+  } else {
+    delete cleaned.mergeRows;
+    delete cleaned.mergeRecipientKey;
+  }
+  next[idx] = cleaned;
   persistProjects(next);
 }

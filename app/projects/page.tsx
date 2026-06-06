@@ -40,6 +40,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { FolderSettingsDialog } from "@/components/projects/folder-settings-dialog";
 import { downloadProjectJson } from "@/lib/project-export";
+import { normalizeMergeJson } from "@/lib/mail-merge";
 import { usePreviewAppearance } from "@/lib/preview-appearance";
 import { buildPreviewSrcDoc } from "@/lib/preview-srcdoc";
 import {
@@ -486,6 +487,17 @@ export default function ProjectsPage() {
       if (!folderList.some((f) => f.id === folderId)) {
         folderId = fallbackFolderId;
       }
+      const mergeRaw = (data as Record<string, unknown>).mergeRows;
+      const mergeRows =
+        mergeRaw !== undefined ? normalizeMergeJson(mergeRaw) : undefined;
+      const mkRaw = (data as Record<string, unknown>).mergeRecipientKey;
+      const mk =
+        typeof mkRaw === "string" ? mkRaw.trim() : "";
+      const mergeRecipientKey =
+        mergeRows?.length && mk && mergeRows.some((r) => mk in r)
+          ? mk
+          : undefined;
+
       const project: MailrProject = {
         id: crypto.randomUUID(),
         name: data.name,
@@ -503,6 +515,8 @@ export default function ProjectsPage() {
             ? (data as { envelope?: unknown }).envelope
             : undefined,
         ),
+        ...(mergeRows?.length ? { mergeRows } : {}),
+        ...(mergeRecipientKey ? { mergeRecipientKey } : {}),
       };
       addProject(project);
       setProjects(loadProjects());
