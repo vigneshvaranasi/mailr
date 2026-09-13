@@ -536,12 +536,15 @@ export default function ProjectsPage() {
   return (
     <div className="bg-background flex min-h-screen flex-1 flex-col">
       <header className="border-border bg-background border-b">
-        <div className="mx-auto flex h-14 max-w-5xl items-center px-4 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
           <Link
             href="/"
             className="text-foreground rounded-sm text-lg font-semibold tracking-tight outline-none transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-ring"
           >
             Mailr
+          </Link>
+          <Link href="/docs" className="text-muted-foreground hover:text-foreground rounded-sm text-sm transition-colors focus-visible:ring-2 focus-visible:ring-ring">
+            Docs
           </Link>
         </div>
       </header>
@@ -583,7 +586,7 @@ export default function ProjectsPage() {
 
             {folders.length === 0 ? (
               <p className="text-muted-foreground text-sm leading-relaxed">
-                Create a folder first — then you can add or import projects.
+                Create a folder first - then you can add or import projects.
               </p>
             ) : null}
 
@@ -636,7 +639,7 @@ export default function ProjectsPage() {
                       if (!resolveTargetFolderId()) {
                         toast.error("Select a folder", {
                           description:
-                            "Pick which folder tab is active — projects go there.",
+                            "Pick which folder tab is active - projects go there.",
                         });
                         return;
                       }
@@ -659,7 +662,7 @@ export default function ProjectsPage() {
                       if (!resolveTargetFolderId()) {
                         toast.error("Select a folder", {
                           description:
-                            "Pick which folder tab is active — imports go there.",
+                            "Pick which folder tab is active - imports go there.",
                         });
                         return;
                       }
@@ -685,7 +688,7 @@ export default function ProjectsPage() {
               ) : (
                 <>
                   No projects in this folder yet. Create one or import a JSON
-                  export — it will use the folder selected above.
+                  export - it will use the folder selected above.
                 </>
               )}
             </div>

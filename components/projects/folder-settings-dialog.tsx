@@ -163,7 +163,7 @@ export function FolderSettingsDialog({
                   <>
                     <p className="text-muted-foreground text-sm leading-relaxed">
                       {projectCount === 0
-                        ? "No projects in this folder — you can delete it. SMTP settings for this folder will be removed."
+                        ? "No projects in this folder - you can delete it. SMTP settings for this folder will be removed."
                         : `${projectCount} project${projectCount === 1 ? "" : "s"} will move to the folder below. SMTP settings for this folder will be removed.`}
                     </p>
                     {projectCount > 0 ? (

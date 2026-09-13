@@ -25,7 +25,7 @@ type SendMailDialogProps = {
 function Detail({
   label,
   value,
-  empty = "—",
+  empty = "-",
 }: {
   label: string;
   value: string;

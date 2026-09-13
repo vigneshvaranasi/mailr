@@ -505,7 +505,7 @@ export function ProjectDynamicData({ projectId }: ProjectDynamicDataProps) {
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <span className="text-sm font-medium">Preview</span>
             <span className="text-muted-foreground text-xs font-normal">
-              Live from the editor—stored copy updates only when you{" "}
+              Live from the editor-stored copy updates only when you{" "}
               <strong className="text-foreground font-medium">Save</strong>.
             </span>
           </div>
@@ -546,7 +546,7 @@ export function ProjectDynamicData({ projectId }: ProjectDynamicDataProps) {
           <p className="text-muted-foreground text-xs">
             {mergeUi.previewRows.length} row(s); {mergeUi.validSendCount}{" "}
             valid email(s) using column &quot;
-            {mergeUi.resolvedRecipientKey || "—"}&quot;.
+            {mergeUi.resolvedRecipientKey || "-"}&quot;.
           </p>
         </div>
       ) : null}
